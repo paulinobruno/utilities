@@ -21,3 +21,12 @@ FROM pg_catalog.pg_locks blocked_locks
     AND blocking_locks.pid != blocked_locks.pid
   JOIN pg_catalog.pg_stat_activity blocking_activity ON blocking_activity.pid = blocking_locks.pid
 WHERE NOT blocked_locks.granted;
+
+-- List sessions from users
+SELECT *
+FROM pg_catalog.pg_stat_activity
+WHERE pid != pg_backend_pid()
+  AND usename = 'rdsadmin';
+
+-- Kill specified session (per pid)
+SELECT pg_terminate_backend(:pid);
