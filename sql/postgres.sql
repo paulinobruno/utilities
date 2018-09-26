@@ -30,3 +30,31 @@ WHERE pid != pg_backend_pid()
 
 -- Kill specified session (per pid)
 SELECT pg_terminate_backend(:pid);
+
+-- List all privileges for role
+select
+  pg_user.usename,
+  t1.nspname,
+  t1.relname, 
+  relacl.privilege_type,
+  relacl.is_grantable
+from (
+  select
+    pg_namespace.nspname,
+    pg_class.relname,
+    coalesce(pg_class.relacl, ('{' || pg_user.usename || '=arwdDxt/' || pg_user.usename || '}')::aclitem[]) as relacl
+  from
+    pg_class
+    inner join pg_namespace on pg_class.relnamespace = pg_namespace.oid
+    inner join pg_user on pg_class.relowner = pg_user.usesysid
+  where
+    pg_namespace.nspname !~ '^pg_'
+    and pg_namespace.nspname != 'information_schema'
+) as t1
+cross join aclexplode(t1.relacl) as relacl
+inner join pg_user on relacl.grantee = pg_user.usesysid
+order by
+  pg_user.usename,
+  t1.nspname,
+  t1.relname,
+  relacl.privilege_type
